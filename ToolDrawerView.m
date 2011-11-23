@@ -28,6 +28,8 @@
 
 @implementation ToolDrawerView
 
+@synthesize delegate;
+
 #pragma mark
 #pragma mark Synthesized fields
 

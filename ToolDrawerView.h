@@ -22,7 +22,10 @@ typedef enum{
     kVertically
 } ToolDrawerDirection;
 
+@protocol ToolDrawerDelegate;
+
 @interface ToolDrawerView : UIView {
+    id<ToolDrawerDelegate> delegate;
     NSTimer *toolDrawerFadeTimer;
 
     CGPoint openPosition;
@@ -38,6 +41,7 @@ typedef enum{
     BOOL open;
 }
 
+@property (nonatomic, assign) id<ToolDrawerDelegate> delegate;
 @property (assign) ToolDrawerHorizontalCorner horizontalCorner;
 @property (assign) ToolDrawerVerticalCorner verticalCorner;
 @property (assign) ToolDrawerDirection direction;
@@ -59,4 +63,9 @@ typedef enum{
 - (void)open;
 - (void)close;
 
+@end
+
+@protocol ToolDrawerDelegate <NSObject>
+- (void)toolDrawerViewWasClosedByUser:(ToolDrawerView *)toolDrawerView;
+- (void)toolDrawerViewWasOpenedByUser:(ToolDrawerView *)toolDrawerView;
 @end
