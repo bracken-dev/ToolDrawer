@@ -22,11 +22,19 @@ typedef enum{
     kVertically
 } ToolDrawerDirection;
 
+typedef enum{
+    kChevronDefault,
+    kChevronSimple
+} ToolDrawerChevronStyle;
+
 @protocol ToolDrawerDelegate;
 
 @interface ToolDrawerView : UIView {
     id<ToolDrawerDelegate> delegate;
     NSTimer *toolDrawerFadeTimer;
+    
+    UIColor *chevronColor;
+    BOOL idleFade;
 
     CGPoint openPosition;
     CGPoint closePosition;
@@ -42,16 +50,25 @@ typedef enum{
 }
 
 @property (nonatomic, assign) id<ToolDrawerDelegate> delegate;
+
+@property (nonatomic, retain) UIColor *chevronColor;
+
 @property (assign) ToolDrawerHorizontalCorner horizontalCorner;
 @property (assign) ToolDrawerVerticalCorner verticalCorner;
 @property (assign) ToolDrawerDirection direction;
+@property (assign) ToolDrawerChevronStyle chevronStyle;
 @property (nonatomic, retain) UIButton *handleButton;
 
 @property (assign) NSTimeInterval durationToFade;
 @property (assign) NSTimeInterval perItemAnimationDuration;
 
 
-- (id)initInVerticalCorner:(ToolDrawerVerticalCorner)vCorner andHorizontalCorner:(ToolDrawerHorizontalCorner)hCorner moving:(ToolDrawerDirection)aDirection;
+- (id)initInVerticalCorner:(ToolDrawerVerticalCorner)vCorner
+       andHorizontalCorner:(ToolDrawerHorizontalCorner)hCorner
+                    moving:(ToolDrawerDirection)aDirection
+                  idleFade:(BOOL)fade
+              chevronStyle:(ToolDrawerChevronStyle)cStyle
+              chevronColor:(UIColor *)cColor;
 
 - (void)blinkTabButton;
 
@@ -66,6 +83,8 @@ typedef enum{
 @end
 
 @protocol ToolDrawerDelegate <NSObject>
-- (void)toolDrawerViewWasClosedByUser:(ToolDrawerView *)toolDrawerView;
-- (void)toolDrawerViewWasOpenedByUser:(ToolDrawerView *)toolDrawerView;
+- (void)toolDrawerIsOpening:(ToolDrawerView *)toolDrawerView;
+- (void)toolDrawerIsClosing:(ToolDrawerView *)toolDrawerView;
+- (void)toolDrawerIsOpened:(ToolDrawerView *)toolDrawerView;
+- (void)toolDrawerIsClosed:(ToolDrawerView *)toolDrawerView;
 @end

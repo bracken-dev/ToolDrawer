@@ -33,20 +33,42 @@
 #pragma mark
 #pragma mark Synthesized fields
 
+@synthesize chevronColor;
+
 @synthesize horizontalCorner;
 @synthesize verticalCorner;
 @synthesize direction;
+@synthesize chevronStyle;
 @synthesize handleButton;
 
 @synthesize durationToFade;
 @synthesize perItemAnimationDuration;
 
+- (void)dealloc
+{
+    [chevronColor release];
+    [handleButton release];
+    [super dealloc];
+}
+
 #pragma mark
 #pragma mark NSObject lifecycle methods
 
-- (id)initInVerticalCorner:(ToolDrawerVerticalCorner)vCorner andHorizontalCorner:(ToolDrawerHorizontalCorner)hCorner moving:(ToolDrawerDirection)aDirection{
+- (id)initInVerticalCorner:(ToolDrawerVerticalCorner)vCorner
+       andHorizontalCorner:(ToolDrawerHorizontalCorner)hCorner
+                    moving:(ToolDrawerDirection)aDirection
+                  idleFade:(BOOL)fade
+              chevronStyle:(ToolDrawerChevronStyle)cStyle
+              chevronColor:(UIColor *)cColor {
 	// The popup toolbar starts off life as a 50.0 x 50.0 view
     if ((self = [super initWithFrame:CGRectMake(0.0, 0.0, 50.0, 50.0)])) {
+        // Set chevron color and style.
+        self.chevronColor = cColor;
+        self.chevronStyle = cStyle;
+        
+        // Set drawer fade or not.
+        idleFade = fade;
+        
 		// It starts off in the close position
         open = NO;
 		// Add the chevron button to the view
@@ -61,12 +83,14 @@
         self.direction = aDirection;
         
 		// Set the period after which the toolbar should fade
-		self.durationToFade = 15.0;
+        self.durationToFade = 15.0;
 		// Set the per item animation duration
 		self.perItemAnimationDuration = 0.3;
         
 		// Start the fade timer
         [self resetFadeTimer];
+        
+        [delegate toolDrawerIsClosed:self];
     }
     
     return self;
@@ -98,14 +122,14 @@
     size_t num_locations = 2;
     CGFloat locations[2] = { 0.0, 1.0 };
     CGFloat components[8] = { 0.0, 0.0, 0.0, 0.65,  // Start color
-                 0.0, 0.0, 0.0, 0.95 }; // End color
-     
+        0.0, 0.0, 0.0, 0.95 }; // End color
+    
     myColorspace = CGColorSpaceCreateDeviceRGB();
     myGradient = CGGradientCreateWithColorComponents (myColorspace, components,
                                                       locations, num_locations);
-         
+    
     CGPoint startPoint = CGPointMake(iRect.origin.x,iRect.origin.y), 
-            endPoint = CGPointMake(iRect.origin.x, iRect.origin.y + iRect.size.height);
+    endPoint = CGPointMake(iRect.origin.x, iRect.origin.y + iRect.size.height);
     
     CGContextSaveGState(ctx);
     CGContextClip(ctx);
@@ -143,23 +167,30 @@
     CGContextSetFillColorWithColor(ctx, fillColor.CGColor);
     CGContextSetLineWidth(ctx, 2.0);
     
-    CGRect circle = CGRectMake(2.0, 2.0, 20.0, 20.0);
-    // Draw filled circle
-    CGContextFillEllipseInRect(ctx, circle);
+    CGFloat chevronOffset;
+    if (self.chevronStyle == kChevronDefault) {
+        CGRect circle = CGRectMake(2.0, 2.0, 20.0, 20.0);
+        // Draw filled circle
+        CGContextFillEllipseInRect(ctx, circle);
+        
+        // Stroke circle
+        CGContextAddEllipseInRect(ctx, circle);
+        CGContextStrokePath(ctx);
+        
+        // Stroke Chevron
+        chevronOffset = 4.0;
+    } else if (self.chevronStyle == kChevronSimple) {
+        // Stroke Chevron
+        chevronOffset = 8.0;
+    }
     
-    // Stroke circle
-    CGContextAddEllipseInRect(ctx, circle);
-    CGContextStrokePath(ctx);
-    
-    // Stroke Chevron
-    CGFloat chevronOffset = 4.0;
     
     CGContextBeginPath(ctx);
     CGContextMoveToPoint(ctx, 12.0 - chevronOffset, 12.0 - chevronOffset);
     CGContextAddLineToPoint(ctx, 12.0 + chevronOffset, 12.0);
     CGContextAddLineToPoint(ctx, 12.0 - chevronOffset, 12.0 + chevronOffset);
     CGContextAddLineToPoint(ctx, 12.0 - chevronOffset, 12 - chevronOffset);
-    CGContextSetFillColorWithColor(ctx, [UIColor whiteColor].CGColor);
+    CGContextSetFillColorWithColor(ctx, self.chevronColor.CGColor);
     CGContextFillPath(ctx);
     CGContextStrokePath(ctx);
     
@@ -232,12 +263,14 @@
         toolDrawerFadeTimer = nil;
     }
     
-    // Start the timer again
+    // Start the timer again if fade is enabled.
+    if (idleFade) {
     toolDrawerFadeTimer = [NSTimer scheduledTimerWithTimeInterval:self.durationToFade
                                                            target:self
                                                          selector:@selector(fadeAway:)
                                                          userInfo:nil
                                                           repeats:NO];
+    }
 }
 
 #pragma mark
@@ -369,8 +402,16 @@
                      animations:^{
                          if ([self isOpen]){
                              self.center = closePosition;
+                             [delegate toolDrawerIsClosing:self];
+                             [self performSelector:@selector(toolDrawerIsClosed:)
+                                        withObject:self
+                                        afterDelay:duration];
                          } else {
                              self.center = openPosition;
+                             [delegate toolDrawerIsOpening:self];
+                             [self performSelector:@selector(toolDrawerIsOpened:)
+                                        withObject:self
+                                        afterDelay:duration];
                          }
                          
                          open = !open;
@@ -383,6 +424,16 @@
                          self.handleButton.transform = CGAffineTransformRotate(self.handleButton.transform, M_PI);
                      }
 					 completion:nil];
+}
+
+- (void)toolDrawerIsClosed:(id)sender
+{
+    [delegate toolDrawerIsClosed:self];
+}
+
+- (void)toolDrawerIsOpened:(id)sender
+{
+    [delegate toolDrawerIsOpened:self];
 }
 
 @end
